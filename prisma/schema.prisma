@@ -47,6 +47,7 @@ model User {
   notifications         Notification[]
   auditLogs             AuditLog[]
   settingsUpdates       SystemSetting[]
+  refreshTokens         RefreshToken[]
 
   createdAt             DateTime   @default(now())
   updatedAt             DateTime   @updatedAt
@@ -57,6 +58,25 @@ model User {
   @@index([isActive, role])
   @@index([lastLoginAt])
 }
+
+model RefreshToken {
+  id           Int       @id @default(autoincrement())
+  tokenHash    String    @unique
+  userId       Int
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  revoked      Boolean   @default(false)
+  replacedById Int? 
+  replacedBy   RefreshToken? @relation("replacement", fields: [replacedById], references: [id])
+  createdAt    DateTime  @default(now())
+  expiresAt    DateTime
+  ipAddress    String?
+  userAgent    String?
+  reason       String?
+
+  // 👇 inversa correcta (plural, sin campo extra)
+  replacedTokens RefreshToken[] @relation("replacement")
+}
+
 
 enum Role {
   ADMIN

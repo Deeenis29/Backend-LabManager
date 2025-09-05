@@ -1,9 +1,15 @@
 {
   "compilerOptions": {
     /* Paths */
-    "baseUrl": "./src",
+    "baseUrl": "src",
     "paths": {
-      "@/*": ["*"]
+      "@/*": ["*"],
+      "@modules/*": ["modules/*"],
+      "@config/*": ["config/*"],
+      "@db/*": ["db/*"],
+      "@middlewares/*": ["middlewares/*"],
+      "@utils/*": ["utils/*"],
+      "@routes/*": ["routes/*"]
     },
 
     /* File output */
