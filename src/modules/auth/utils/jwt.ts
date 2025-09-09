@@ -1,19 +1,17 @@
+import { z } from "zod";
 import jwt from "jsonwebtoken";
 import { env } from "@config/env";
+import { roleEnum } from "@modules/auth/dto/shared.enums";
 
-export type AppRole =
-  | "ADMIN"
-  | "DOCTOR"
-  | "TECHNICIAN"
-  | "RECEPTIONIST"
-  | "PATIENT"
-  | "QUALITY_MANAGER";
+/**
+ * 📌 Payload mínimo dentro del JWT
+ */
 
 export interface JwtPayload {
   id: number;
-  role: AppRole;
-  iat?: number; // issued at (segundos)
-  exp?: number; // expiry
+  role: z.infer<typeof roleEnum>;
+  iat?: number;
+  exp?: number;
 }
 
 export const signAccessToken = (payload: JwtPayload) =>

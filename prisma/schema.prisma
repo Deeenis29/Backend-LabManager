@@ -17,41 +17,42 @@ datasource db {
 // ==========================================
 
 model User {
-  id                    Int        @id @default(autoincrement())
-  email                 String     @unique
-  passwordHash          String
-  passwordSalt          String
-  role                  Role
-  documentType          DocumentType
-  documentNumber        String
-  emailVerified         Boolean    @default(false)
-  emailVerifiedAt       DateTime?
-  isActive              Boolean    @default(true)
-  lastLoginAt           DateTime?
-  loginAttempts         Int        @default(0)
-  lockedUntil           DateTime?
-  passwordResetToken    String?
-  passwordResetExpires  DateTime?
-  lastPasswordChange    DateTime?
-  twoFactorEnabled      Boolean    @default(false)
-  twoFactorSecret       String?
+  id                   Int          @id @default(autoincrement())
+  email                String       @unique
+  passwordHash         String?
+  passwordSalt         String?
+  role                 Role
+  documentType         DocumentType
+  documentNumber       String
+  emailVerified        Boolean      @default(false)
+  emailVerifiedAt      DateTime?
+  isActive             Boolean      @default(true)
+  lastLoginAt          DateTime?
+  loginAttempts        Int          @default(0)
+  lockedUntil          DateTime?
+  passwordResetToken   String?
+  passwordResetExpires DateTime?
+  lastPasswordChange   DateTime?
+  twoFactorEnabled     Boolean      @default(false)
+  twoFactorSecret      String?
 
   // Relaciones
-  profile               Profile?
-  doctor                Doctor?
-  patient               Patient?
-  createdSamples        Sample[]   @relation("SampleCollectedBy")
-  handledSamples        CustodyRecord[]
-  inventoryMovements    InventoryMovement[]
-  qualityControls       QualityControl[]
-  notifications         Notification[]
-  auditLogs             AuditLog[]
-  settingsUpdates       SystemSetting[]
-  refreshTokens         RefreshToken[]
+  profile            Profile?
+  doctor             Doctor?
+  patient            Patient?
+  createdSamples     Sample[]            @relation("SampleCollectedBy")
+  handledSamples     CustodyRecord[]
+  inventoryMovements InventoryMovement[]
+  qualityControls    QualityControl[]
+  notifications      Notification[]
+  auditLogs          AuditLog[]
+  settingsUpdates    SystemSetting[]
+  refreshTokens      RefreshToken[]
+  familyMembers      FamilyMember[]
 
-  createdAt             DateTime   @default(now())
-  updatedAt             DateTime   @updatedAt
-  deletedAt             DateTime?  // Soft delete
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime? // Soft delete
 
   @@unique([documentType, documentNumber])
   @@index([email])
@@ -60,14 +61,14 @@ model User {
 }
 
 model RefreshToken {
-  id           Int       @id @default(autoincrement())
-  tokenHash    String    @unique
+  id           Int           @id @default(autoincrement())
+  tokenHash    String        @unique
   userId       Int
-  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  revoked      Boolean   @default(false)
-  replacedById Int? 
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  revoked      Boolean       @default(false)
+  replacedById Int?
   replacedBy   RefreshToken? @relation("replacement", fields: [replacedById], references: [id])
-  createdAt    DateTime  @default(now())
+  createdAt    DateTime      @default(now())
   expiresAt    DateTime
   ipAddress    String?
   userAgent    String?
@@ -76,7 +77,6 @@ model RefreshToken {
   // 👇 inversa correcta (plural, sin campo extra)
   replacedTokens RefreshToken[] @relation("replacement")
 }
-
 
 enum Role {
   ADMIN
@@ -100,27 +100,27 @@ enum DocumentType {
 // ==========================================
 
 model Profile {
-  id                    Int       @id @default(autoincrement())
-  userId                Int       @unique
-  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  firstName             String
-  lastName              String
-  middleName            String?
-  phone                 String?
-  alternativePhone      String?
-  address               String?
-  city                  String?
-  state                 String?
-  country               String    @default("PE")
-  postalCode            String?
-  birthDate             DateTime?
-  gender                Gender?
-  bloodType             BloodType?
-  avatar                String?   // URL del avatar
+  id               Int        @id @default(autoincrement())
+  userId           Int        @unique
+  user             User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  firstName        String
+  lastName         String
+  middleName       String?
+  phone            String?
+  alternativePhone String?
+  address          String?
+  city             String?
+  state            String?
+  country          String     @default("PE")
+  postalCode       String?
+  birthDate        DateTime?
+  gender           Gender?
+  bloodType        BloodType?
+  avatar           String? // URL del avatar
 
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
-  deletedAt             DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
   @@index([firstName, lastName])
 }
@@ -143,44 +143,73 @@ enum BloodType {
   O_NEGATIVE
 }
 
+model Family {
+  id        Int            @id @default(autoincrement())
+  name      String?
+  members   FamilyMember[]
+  createdAt DateTime       @default(now())
+}
+
+model FamilyMember {
+  id        Int        @id @default(autoincrement())
+  familyId  Int
+  userId    Int
+  role      MemberRole
+  relation  String?
+  canView   Boolean    @default(false)
+  createdAt DateTime   @default(now())
+
+  family Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([familyId, userId])
+}
+
+enum MemberRole {
+  PARENT
+  CHILD
+  GUARDIAN
+  OTHER
+}
+
 // ==========================================
 // DOCTORES Y ESPECIALIDADES
 // ==========================================
 
 model Doctor {
-  id                    Int               @id @default(autoincrement())
-  userId                Int               @unique
-  user                  User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  licenseNumber         String            @unique
-  collegeMember         String?           // Colegio médico
-  specialties           DoctorSpecialty[]
-  results               Result[]
-  isActive              Boolean           @default(true)
+  id            Int               @id @default(autoincrement())
+  userId        Int               @unique
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  licenseNumber String            @unique
+  collegeMember String? // Colegio médico
+  specialties   DoctorSpecialty[]
+  results       Result[]
+  isActive      Boolean           @default(true)
 
-  createdAt             DateTime          @default(now())
-  updatedAt             DateTime          @updatedAt
-  deletedAt             DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 }
 
 model Specialty {
-  id                    Int               @id @default(autoincrement())
-  name                  String            @unique
-  code                  String?           @unique
-  description           String?
-  doctors               DoctorSpecialty[]
-  isActive              Boolean           @default(true)
+  id          Int               @id @default(autoincrement())
+  name        String            @unique
+  code        String?           @unique
+  description String?
+  doctors     DoctorSpecialty[]
+  isActive    Boolean           @default(true)
 
-  createdAt             DateTime          @default(now())
-  updatedAt             DateTime          @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model DoctorSpecialty {
-  doctorId              Int
-  specialtyId           Int
-  doctor                Doctor            @relation(fields: [doctorId], references: [id], onDelete: Cascade)
-  specialty             Specialty         @relation(fields: [specialtyId], references: [id], onDelete: Cascade)
-  certificationDate     DateTime?
-  expirationDate        DateTime?
+  doctorId          Int
+  specialtyId       Int
+  doctor            Doctor    @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  specialty         Specialty @relation(fields: [specialtyId], references: [id], onDelete: Cascade)
+  certificationDate DateTime?
+  expirationDate    DateTime?
 
   @@id([doctorId, specialtyId])
 }
@@ -190,43 +219,43 @@ model DoctorSpecialty {
 // ==========================================
 
 model Patient {
-  id                    Int             @id @default(autoincrement())
-  userId                Int             @unique
-  user                  User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  medicalRecordNumber   String?         @unique
-  medicalHistory        String?
-  allergies             String?
-  currentMedications    String?
-  emergencyContact      String?
-  emergencyPhone        String?
-  insuranceProvider     String?
-  insuranceNumber       String?
-  preferredLanguage     String?         @default("es")
+  id                  Int     @id @default(autoincrement())
+  userId              Int     @unique
+  user                User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  medicalRecordNumber String? @unique
+  medicalHistory      String?
+  allergies           String?
+  currentMedications  String?
+  emergencyContact    String?
+  emergencyPhone      String?
+  insuranceProvider   String?
+  insuranceNumber     String?
+  preferredLanguage   String? @default("es")
 
   // Relaciones
-  samples               Sample[]
-  records               MedicalRecord[]
+  samples Sample[]
+  records MedicalRecord[]
 
-  createdAt             DateTime        @default(now())
-  updatedAt             DateTime        @updatedAt
-  deletedAt             DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
   @@index([medicalRecordNumber])
   @@index([insuranceProvider])
 }
 
 model MedicalRecord {
-  id                    Int       @id @default(autoincrement())
-  patientId             Int
-  patient               Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  type                  RecordType
-  title                 String
-  description           String
-  attachmentUrl         String?
-  createdById           Int?
+  id            Int        @id @default(autoincrement())
+  patientId     Int
+  patient       Patient    @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  type          RecordType
+  title         String
+  description   String
+  attachmentUrl String?
+  createdById   Int?
 
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([patientId, type])
   @@index([createdAt])
@@ -248,16 +277,16 @@ enum RecordType {
 // ==========================================
 
 model CollectionSite {
-  id                    Int       @id @default(autoincrement())
-  name                  String
-  code                  String?   @unique
-  address               String?
-  phone                 String?
-  isActive              Boolean   @default(true)
-  samples               Sample[]
+  id       Int      @id @default(autoincrement())
+  name     String
+  code     String?  @unique
+  address  String?
+  phone    String?
+  isActive Boolean  @default(true)
+  samples  Sample[]
 
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([code])
 }
@@ -267,28 +296,28 @@ model CollectionSite {
 // ==========================================
 
 model Analysis {
-  id                    Int                 @id @default(autoincrement())
-  name                  String
-  code                  String?             @unique
-  description           String?
-  category              AnalysisCategory?
-  unitOfMeasure         String?
-  methodology           String?
-  turnaroundTime        Int?                // Tiempo en horas
-  price                 Float?
-  isActive              Boolean             @default(true)
+  id             Int               @id @default(autoincrement())
+  name           String
+  code           String?           @unique
+  description    String?
+  category       AnalysisCategory?
+  unitOfMeasure  String?
+  methodology    String?
+  turnaroundTime Int? // Tiempo en horas
+  price          Float?
+  isActive       Boolean           @default(true)
 
   // Relaciones
-  protocolId            Int?
-  protocol              Protocol?           @relation(fields: [protocolId], references: [id])
-  results               Result[]
-  requires              AnalysisInventory[]
-  referenceRanges       ReferenceRange[]
-  qualityControls       QualityControl[]
+  protocolId      Int?
+  protocol        Protocol?           @relation(fields: [protocolId], references: [id])
+  results         Result[]
+  requires        AnalysisInventory[]
+  referenceRanges ReferenceRange[]
+  qualityControls QualityControl[]
 
-  createdAt             DateTime            @default(now())
-  updatedAt             DateTime            @updatedAt
-  deletedAt             DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
   @@index([code])
   @@index([category])
@@ -310,53 +339,53 @@ enum AnalysisCategory {
 }
 
 model Protocol {
-  id                    Int        @id @default(autoincrement())
-  name                  String
-  version               String     @default("1.0")
-  parameters            Json
-  instructions          String?
-  isActive              Boolean    @default(true)
-  supersedes            Int?       // ID del protocolo anterior
-  supersededBy          Int?       // ID del protocolo que lo reemplaza
+  id           Int     @id @default(autoincrement())
+  name         String
+  version      String  @default("1.0")
+  parameters   Json
+  instructions String?
+  isActive     Boolean @default(true)
+  supersedes   Int? // ID del protocolo anterior
+  supersededBy Int? // ID del protocolo que lo reemplaza
 
-  analyses              Analysis[]
+  analyses Analysis[]
 
-  createdAt             DateTime   @default(now())
-  updatedAt             DateTime   @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([isActive, version])
 }
 
 model ReferenceRange {
-  id                    Int       @id @default(autoincrement())
-  analysisId            Int
-  analysis              Analysis  @relation(fields: [analysisId], references: [id], onDelete: Cascade)
-  ageMinMonths          Int?      // Edad mínima en meses
-  ageMaxMonths          Int?      // Edad máxima en meses
-  gender                Gender?
-  minValue              Float?
-  maxValue              Float?
-  textValue             String?   // Para valores no numéricos
-  unit                  String?
-  condition             String?   // Condiciones especiales
-  description           String?
-  isActive              Boolean   @default(true)
+  id           Int      @id @default(autoincrement())
+  analysisId   Int
+  analysis     Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  ageMinMonths Int? // Edad mínima en meses
+  ageMaxMonths Int? // Edad máxima en meses
+  gender       Gender?
+  minValue     Float?
+  maxValue     Float?
+  textValue    String? // Para valores no numéricos
+  unit         String?
+  condition    String? // Condiciones especiales
+  description  String?
+  isActive     Boolean  @default(true)
 
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([analysisId, gender])
   @@index([analysisId, ageMinMonths, ageMaxMonths])
 }
 
 model AnalysisInventory {
-  analysisId            Int
-  inventoryItemId       Int
-  requiredAmount        Int
-  isOptional            Boolean   @default(false)
+  analysisId      Int
+  inventoryItemId Int
+  requiredAmount  Int
+  isOptional      Boolean @default(false)
 
-  analysis              Analysis       @relation(fields: [analysisId], references: [id], onDelete: Cascade)
-  inventoryItem         InventoryItem  @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+  analysis      Analysis      @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  inventoryItem InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
 
   @@id([analysisId, inventoryItemId])
 }
@@ -366,47 +395,47 @@ model AnalysisInventory {
 // ==========================================
 
 model Sample {
-  id                    Int                   @id @default(autoincrement())
-  code                  String                @unique @default(uuid())
-  barcode               String?               @unique
-  patientId             Int
-  patient               Patient               @relation(fields: [patientId], references: [id], onDelete: Restrict)
-  collectionSiteId      Int?
-  collectionSite        CollectionSite?       @relation(fields: [collectionSiteId], references: [id])
-  sampleType            SampleType
-  containerType         ContainerType?
-  volume                Float?                // ml
-  temperature           Float?                // °C
-  ph                    Float?
-  color                 String?
-  appearance            SampleAppearance?
-  priority              Priority              @default(NORMAL)
-  status                SampleStatus          @default(PENDING)
-  comments              String?
-  specialInstructions   String?
+  id                  Int               @id @default(autoincrement())
+  code                String            @unique @default(uuid())
+  barcode             String?           @unique
+  patientId           Int
+  patient             Patient           @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  collectionSiteId    Int?
+  collectionSite      CollectionSite?   @relation(fields: [collectionSiteId], references: [id])
+  sampleType          SampleType
+  containerType       ContainerType?
+  volume              Float? // ml
+  temperature         Float? // °C
+  ph                  Float?
+  color               String?
+  appearance          SampleAppearance?
+  priority            Priority          @default(NORMAL)
+  status              SampleStatus      @default(PENDING)
+  comments            String?
+  specialInstructions String?
 
   // Tiempos importantes
-  collectedAt           DateTime              @default(now())
-  collectedBy           Int?
-  collectedByUser       User?                 @relation("SampleCollectedBy", fields: [collectedBy], references: [id])
-  receivedAt            DateTime?
-  processedAt           DateTime?
-  completedAt           DateTime?
-  expiresAt             DateTime?
+  collectedAt     DateTime  @default(now())
+  collectedBy     Int?
+  collectedByUser User?     @relation("SampleCollectedBy", fields: [collectedBy], references: [id])
+  receivedAt      DateTime?
+  processedAt     DateTime?
+  completedAt     DateTime?
+  expiresAt       DateTime?
 
   // Condiciones de transporte
-  transportConditions   String?
-  transportTemperature  Float?
+  transportConditions  String?
+  transportTemperature Float?
 
   // Relaciones
-  results               Result[]
-  inventoryUsages       SampleInventoryUsage[]
-  inventoryMovements    InventoryMovement[]
-  custodyChain          CustodyRecord[]
+  results            Result[]
+  inventoryUsages    SampleInventoryUsage[]
+  inventoryMovements InventoryMovement[]
+  custodyChain       CustodyRecord[]
 
-  createdAt             DateTime              @default(now())
-  updatedAt             DateTime              @updatedAt
-  deletedAt             DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
   @@index([patientId, collectedAt])
   @@index([status, createdAt])
@@ -471,18 +500,18 @@ enum Priority {
 }
 
 model CustodyRecord {
-  id                    Int      @id @default(autoincrement())
-  sampleId              Int
-  sample                Sample   @relation(fields: [sampleId], references: [id], onDelete: Cascade)
-  handledBy             Int
-  user                  User     @relation(fields: [handledBy], references: [id])
-  action                CustodyAction
-  location              String?
-  temperature           Float?
-  condition             String?
-  notes                 String?
+  id          Int           @id @default(autoincrement())
+  sampleId    Int
+  sample      Sample        @relation(fields: [sampleId], references: [id], onDelete: Cascade)
+  handledBy   Int
+  user        User          @relation(fields: [handledBy], references: [id])
+  action      CustodyAction
+  location    String?
+  temperature Float?
+  condition   String?
+  notes       String?
 
-  createdAt             DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([sampleId, createdAt])
 }
@@ -502,50 +531,50 @@ enum CustodyAction {
 // ==========================================
 
 model Result {
-  id                    Int        @id @default(autoincrement())
-  sampleId              Int
-  sample                Sample     @relation(fields: [sampleId], references: [id], onDelete: Cascade)
-  analysisId            Int
-  analysis              Analysis   @relation(fields: [analysisId], references: [id], onDelete: Restrict)
-  doctorId              Int?
-  doctor                Doctor?    @relation(fields: [doctorId], references: [id], onDelete: SetNull)
-  equipmentId           Int?
-  equipment             Equipment? @relation(fields: [equipmentId], references: [id])
+  id          Int        @id @default(autoincrement())
+  sampleId    Int
+  sample      Sample     @relation(fields: [sampleId], references: [id], onDelete: Cascade)
+  analysisId  Int
+  analysis    Analysis   @relation(fields: [analysisId], references: [id], onDelete: Restrict)
+  doctorId    Int?
+  doctor      Doctor?    @relation(fields: [doctorId], references: [id], onDelete: SetNull)
+  equipmentId Int?
+  equipment   Equipment? @relation(fields: [equipmentId], references: [id])
 
   // Valores del resultado
-  numericValue          Float?
-  textValue             String?
-  booleanValue          Boolean?
-  valueJson             Json?      // Para resultados complejos
-  unit                  String?
+  numericValue Float?
+  textValue    String?
+  booleanValue Boolean?
+  valueJson    Json? // Para resultados complejos
+  unit         String?
 
   // Interpretación
-  isNormal              Boolean?
-  isCritical            Boolean    @default(false)
-  interpretation        String?
-  comments              String?
+  isNormal       Boolean?
+  isCritical     Boolean  @default(false)
+  interpretation String?
+  comments       String?
 
   // URLs de archivos
-  reportUrl             String?
-  imageUrls             String[]   // Array de URLs de imágenes
+  reportUrl String?
+  imageUrls String[] // Array de URLs de imágenes
 
   // Control de calidad
-  qcPassed              Boolean    @default(false)
-  qcComments            String?
+  qcPassed   Boolean @default(false)
+  qcComments String?
 
   // Validación
-  isValidated           Boolean    @default(false)
-  validatedAt           DateTime?
-  validatedBy           Int?
+  isValidated Boolean   @default(false)
+  validatedAt DateTime?
+  validatedBy Int?
 
   // Entrega
-  isDelivered           Boolean    @default(false)
-  deliveredAt           DateTime?
-  deliveryMethod        DeliveryMethod?
+  isDelivered    Boolean         @default(false)
+  deliveredAt    DateTime?
+  deliveryMethod DeliveryMethod?
 
-  createdAt             DateTime   @default(now())
-  updatedAt             DateTime   @updatedAt
-  deletedAt             DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
   @@unique([sampleId, analysisId])
   @@index([sampleId, analysisId])
@@ -567,32 +596,32 @@ enum DeliveryMethod {
 // ==========================================
 
 model Equipment {
-  id                    Int                @id @default(autoincrement())
-  name                  String
-  model                 String?
-  serialNumber          String?            @unique
-  manufacturer          String?
-  status                EquipmentStatus    @default(ACTIVE)
-  location              String?
-  description           String?
+  id           Int             @id @default(autoincrement())
+  name         String
+  model        String?
+  serialNumber String?         @unique
+  manufacturer String?
+  status       EquipmentStatus @default(ACTIVE)
+  location     String?
+  description  String?
 
   // Fechas de mantenimiento
-  lastMaintenance       DateTime?
-  nextMaintenance       DateTime?
-  calibrationDue        DateTime?
-  warrantyExpires       DateTime?
+  lastMaintenance DateTime?
+  nextMaintenance DateTime?
+  calibrationDue  DateTime?
+  warrantyExpires DateTime?
 
   // Configuración
-  parameters            Json?
-  isActive              Boolean            @default(true)
+  parameters Json?
+  isActive   Boolean @default(true)
 
   // Relaciones
-  results               Result[]
-  maintenanceRecords    MaintenanceRecord[]
+  results            Result[]
+  maintenanceRecords MaintenanceRecord[]
 
-  createdAt             DateTime           @default(now())
-  updatedAt             DateTime           @updatedAt
-  deletedAt             DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
   @@index([status, isActive])
   @@index([nextMaintenance])
@@ -607,18 +636,18 @@ enum EquipmentStatus {
 }
 
 model MaintenanceRecord {
-  id                    Int       @id @default(autoincrement())
-  equipmentId           Int
-  equipment             Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
-  type                  MaintenanceType
-  title                 String
-  description           String
-  performedBy           String
-  cost                  Float?
-  partsReplaced         String?
-  nextMaintenanceDate   DateTime?
+  id                  Int             @id @default(autoincrement())
+  equipmentId         Int
+  equipment           Equipment       @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  type                MaintenanceType
+  title               String
+  description         String
+  performedBy         String
+  cost                Float?
+  partsReplaced       String?
+  nextMaintenanceDate DateTime?
 
-  createdAt             DateTime  @default(now())
+  createdAt DateTime @default(now())
 
   @@index([equipmentId, type])
   @@index([createdAt])
@@ -638,25 +667,25 @@ enum MaintenanceType {
 // ==========================================
 
 model QualityControl {
-  id                    Int      @id @default(autoincrement())
-  analysisId            Int
-  analysis              Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
-  lotNumber             String
-  level                 QCLevel
-  expectedValue         Float?
-  acceptableRange       Float?
-  unit                  String?
-  result                Float?
-  status                QCStatus @default(PENDING)
-  deviation             Float?
-  comments              String?
+  id              Int      @id @default(autoincrement())
+  analysisId      Int
+  analysis        Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  lotNumber       String
+  level           QCLevel
+  expectedValue   Float?
+  acceptableRange Float?
+  unit            String?
+  result          Float?
+  status          QCStatus @default(PENDING)
+  deviation       Float?
+  comments        String?
 
-  testedBy              Int?
-  testedByUser          User?    @relation(fields: [testedBy], references: [id])
-  testedAt              DateTime?
+  testedBy     Int?
+  testedByUser User?     @relation(fields: [testedBy], references: [id])
+  testedAt     DateTime?
 
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([analysisId, testedAt])
   @@index([status, testedAt])
@@ -682,45 +711,45 @@ enum QCStatus {
 // ==========================================
 
 model InventoryItem {
-  id                    Int                  @id @default(autoincrement())
-  name                  String
-  code                  String?              @unique
-  type                  InventoryType
-  category              String?
-  brand                 String?
-  supplier              String?
-  supplierCode          String?
+  id           Int           @id @default(autoincrement())
+  name         String
+  code         String?       @unique
+  type         InventoryType
+  category     String?
+  brand        String?
+  supplier     String?
+  supplierCode String?
 
   // Cantidades
-  quantity              Int                  @default(0)
-  minStock              Int                  @default(0)
-  maxStock              Int?
-  unit                  String               @default("unit")
+  quantity Int    @default(0)
+  minStock Int    @default(0)
+  maxStock Int?
+  unit     String @default("unit")
 
   // Fechas importantes
-  expiration            DateTime?
-  manufacturedDate      DateTime?
+  expiration       DateTime?
+  manufacturedDate DateTime?
 
   // Costos
-  unitCost              Float?
-  totalCost             Float?
+  unitCost  Float?
+  totalCost Float?
 
   // Almacenamiento
-  location              String?
-  storageConditions     String?
+  location          String?
+  storageConditions String?
 
   // Estado
-  isActive              Boolean              @default(true)
-  isConsumable          Boolean              @default(true)
+  isActive     Boolean @default(true)
+  isConsumable Boolean @default(true)
 
   // Relaciones
-  usages                SampleInventoryUsage[]
-  movements             InventoryMovement[]
-  analysisRequirements  AnalysisInventory[]
+  usages               SampleInventoryUsage[]
+  movements            InventoryMovement[]
+  analysisRequirements AnalysisInventory[]
 
-  createdAt             DateTime             @default(now())
-  updatedAt             DateTime             @updatedAt
-  deletedAt             DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
   @@index([type, isActive])
   @@index([expiration])
@@ -739,44 +768,44 @@ enum InventoryType {
 }
 
 model SampleInventoryUsage {
-  id                    Int           @id @default(autoincrement())
-  sampleId              Int
-  inventoryItemId       Int
-  quantityUsed          Int
-  unitCost              Float?
-  notes                 String?
+  id              Int     @id @default(autoincrement())
+  sampleId        Int
+  inventoryItemId Int
+  quantityUsed    Int
+  unitCost        Float?
+  notes           String?
 
-  sample                Sample        @relation(fields: [sampleId], references: [id], onDelete: Cascade)
-  inventoryItem         InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Restrict)
+  sample        Sample        @relation(fields: [sampleId], references: [id], onDelete: Cascade)
+  inventoryItem InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Restrict)
 
-  createdAt             DateTime      @default(now())
+  createdAt DateTime @default(now())
 
+  @@unique([sampleId, inventoryItemId])
   @@index([sampleId])
   @@index([inventoryItemId])
-  @@unique([sampleId, inventoryItemId])
 }
 
 model InventoryMovement {
-  id                    Int           @id @default(autoincrement())
-  inventoryItemId       Int
-  type                  MovementType
-  quantity              Int
-  unitCost              Float?
-  totalCost             Float?
-  reason                String?
-  reference             String?       // Número de factura, orden, etc.
+  id              Int          @id @default(autoincrement())
+  inventoryItemId Int
+  type            MovementType
+  quantity        Int
+  unitCost        Float?
+  totalCost       Float?
+  reason          String?
+  reference       String? // Número de factura, orden, etc.
 
   // Usuario que realizó el movimiento
-  createdById           Int?
-  createdBy             User?         @relation(fields: [createdById], references: [id])
+  createdById Int?
+  createdBy   User? @relation(fields: [createdById], references: [id])
 
   // Si está relacionado con una muestra
-  sampleId              Int?
-  sample                Sample?       @relation(fields: [sampleId], references: [id])
+  sampleId Int?
+  sample   Sample? @relation(fields: [sampleId], references: [id])
 
-  inventoryItem         InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+  inventoryItem InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
 
-  createdAt             DateTime      @default(now())
+  createdAt DateTime @default(now())
 
   @@index([inventoryItemId, type])
   @@index([createdAt])
@@ -797,31 +826,31 @@ enum MovementType {
 // ==========================================
 
 model Notification {
-  id                    Int              @id @default(autoincrement())
-  userId                Int
-  user                  User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type                  NotificationType
-  title                 String
-  message               String
-  isRead                Boolean          @default(false)
-  priority              Priority         @default(NORMAL)
+  id       Int              @id @default(autoincrement())
+  userId   Int
+  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type     NotificationType
+  title    String
+  message  String
+  isRead   Boolean          @default(false)
+  priority Priority         @default(NORMAL)
 
   // Referencia al objeto relacionado
-  relatedId             Int?
-  relatedType           String?          // SAMPLE, RESULT, INVENTORY, EQUIPMENT
+  relatedId   Int?
+  relatedType String? // SAMPLE, RESULT, INVENTORY, EQUIPMENT
 
   // URLs de acción
-  actionUrl             String?
+  actionUrl String?
 
   // Configuración de entrega
-  sentByEmail           Boolean          @default(false)
-  sentBySms             Boolean          @default(false)
-  emailSentAt           DateTime?
-  smsSentAt             DateTime?
+  sentByEmail Boolean   @default(false)
+  sentBySms   Boolean   @default(false)
+  emailSentAt DateTime?
+  smsSentAt   DateTime?
 
-  expiresAt             DateTime?
-  createdAt             DateTime         @default(now())
-  readAt                DateTime?
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+  readAt    DateTime?
 
   @@index([userId, isRead])
   @@index([createdAt])
@@ -847,20 +876,20 @@ enum NotificationType {
 // ==========================================
 
 model SystemSetting {
-  id                    Int      @id @default(autoincrement())
-  key                   String   @unique
-  value                 String
-  dataType              SettingDataType @default(STRING)
-  category              String?
-  description           String?
-  isEditable            Boolean  @default(true)
-  isPublic              Boolean  @default(false) // Si puede ser accedido sin autenticación
+  id          Int             @id @default(autoincrement())
+  key         String          @unique
+  value       String
+  dataType    SettingDataType @default(STRING)
+  category    String?
+  description String?
+  isEditable  Boolean         @default(true)
+  isPublic    Boolean         @default(false) // Si puede ser accedido sin autenticación
 
-  updatedBy             Int?
-  updatedByUser         User?    @relation(fields: [updatedBy], references: [id])
+  updatedBy     Int?
+  updatedByUser User? @relation(fields: [updatedBy], references: [id])
 
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([category])
 }
@@ -880,25 +909,25 @@ enum SettingDataType {
 // ==========================================
 
 model AuditLog {
-  id                    Int      @id @default(autoincrement())
-  userId                Int?
-  user                  User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  action                AuditAction
-  tableName             String
-  recordId              Int?
-  oldValues             Json?
-  newValues             Json?
+  id        Int         @id @default(autoincrement())
+  userId    Int?
+  user      User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    AuditAction
+  tableName String
+  recordId  Int?
+  oldValues Json?
+  newValues Json?
 
   // Información de la sesión
-  ipAddress             String?
-  userAgent             String?
-  sessionId             String?
+  ipAddress String?
+  userAgent String?
+  sessionId String?
 
   // Información adicional
-  description           String?
-  severity              LogSeverity @default(INFO)
+  description String?
+  severity    LogSeverity @default(INFO)
 
-  createdAt             DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([tableName, recordId])
   @@index([userId, createdAt])
@@ -934,24 +963,24 @@ enum LogSeverity {
 // ==========================================
 
 model Report {
-  id                    Int          @id @default(autoincrement())
-  name                  String
-  type                  ReportType
-  description           String?
-  query                 String?      // SQL query o configuración
-  parameters            Json?        // Parámetros del reporte
-  isPublic              Boolean      @default(false)
-  isActive              Boolean      @default(true)
+  id          Int        @id @default(autoincrement())
+  name        String
+  type        ReportType
+  description String?
+  query       String? // SQL query o configuración
+  parameters  Json? // Parámetros del reporte
+  isPublic    Boolean    @default(false)
+  isActive    Boolean    @default(true)
 
   // Programación automática
-  isScheduled           Boolean      @default(false)
-  scheduleExpression    String?      // Cron expression
-  lastRun               DateTime?
-  nextRun               DateTime?
+  isScheduled        Boolean   @default(false)
+  scheduleExpression String? // Cron expression
+  lastRun            DateTime?
+  nextRun            DateTime?
 
-  createdBy             Int?
-  createdAt             DateTime     @default(now())
-  updatedAt             DateTime     @updatedAt
+  createdBy Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([type, isActive])
 }
